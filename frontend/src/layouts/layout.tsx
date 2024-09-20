@@ -16,8 +16,6 @@ const Layout = ({children, showHero = false}: Props) => {
             <Footer />
         </div>
     )
-
-  
 }
 
 export default Layout;

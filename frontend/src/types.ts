@@ -18,6 +18,7 @@ export type User = {
     _id: string;
     user: string;
     restaurantName: string;
+    phoneNumber: string;
     city: string;
     country: string;
     deliveryPrice: number;
