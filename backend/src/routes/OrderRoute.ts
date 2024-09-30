@@ -4,15 +4,15 @@ import OrderController from "../controllers/OrderController";
 
 const router = express.Router();
 
+// Routes that require JWT checks
 router.get("/", jwtCheck, jwtParse, OrderController.getMyOrders);
+router.post("/checkout/create-checkout-session", jwtCheck, jwtParse, OrderController.createCheckoutSession);
 
+// Webhook route (No JWT, uses raw body parsing)
 router.post(
-  "/checkout/create-checkout-session",
-  jwtCheck,
-  jwtParse,
-  OrderController.createCheckoutSession
+  "/checkout/webhook", 
+  express.raw({ type: "application/json" }), // Ensure raw body parsing for Stripe webhook
+  OrderController.stripeWebhookHandler
 );
-
-router.post("/checkout/webhook", OrderController.stripeWebhookHandler);
 
 export default router;

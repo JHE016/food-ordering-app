@@ -40,31 +40,40 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
 
   try {
     const sig = req.headers["stripe-signature"];
-    event = STRIPE.webhooks.constructEvent(
-      req.body,
-      sig as string,
-      STRIPE_ENDPOINT_SECRET
-    );
-  } catch (error: any) {
-    console.log(error);
-    return res.status(400).send(`Webhook error: ${error.message}`);
-  }
+    event = STRIPE.webhooks.constructEvent(req.body, sig as string, STRIPE_ENDPOINT_SECRET);
 
-  if (event.type === "checkout.session.completed") {
-    const order = await Order.findById(event.data.object.metadata?.orderId);
+    console.log("Event received:", event.type);
+    console.log("Event data:", event.data.object);
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const orderId = session.metadata?.orderId;
+
+      console.log("Order ID from metadata:", orderId); // Log the orderId
+
+      if (!orderId) {
+        return res.status(400).json({ message: "Order ID is missing in session metadata" });
+      }
+
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Update the order status
+      order.totalAmount = event.data.object.amount_total;
+      order.status = "paid";
+      await order.save();
     }
 
-    order.totalAmount = event.data.object.amount_total;
-    order.status = "paid";
-
-    await order.save();
+    res.status(200).send();
+  } catch (error: unknown) {
+    const errorMessage = (error as Error).message;
+    console.log("Error processing webhook:", errorMessage);
+    return res.status(400).send(`Webhook error: ${errorMessage}`);
   }
-
-  res.status(200).send();
 };
+
 
 const createCheckoutSession = async (req: Request, res: Response) => {
   try {
@@ -126,7 +135,7 @@ const createLineItems = (
 
     const line_item: Stripe.Checkout.SessionCreateParams.LineItem = {
       price_data: {
-        currency: "gbp",
+        currency: "usd",
         unit_amount: menuItem.price,
         product_data: {
           name: menuItem.name,
@@ -156,7 +165,7 @@ const createSession = async (
           type: "fixed_amount",
           fixed_amount: {
             amount: deliveryPrice,
-            currency: "gbp",
+            currency: "usd",
           },
         },
       },
