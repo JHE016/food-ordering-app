@@ -4,6 +4,10 @@ import { useAuth0 } from "@auth0/auth0-react";
 
 const MobileNavLinks = () => {
   const { logout } = useAuth0();
+  const logoutUrl = process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5173/' // Local development URL
+    : 'https://food-ordering-project-1850.netlify.app/';
+
   return (
     <>
       <Link
@@ -25,7 +29,7 @@ const MobileNavLinks = () => {
         User Profile
       </Link>
       <Button
-        onClick={() => logout()}
+        onClick={() => logout({ returnTo: logoutUrl } as any)}
         className="flex items-center px-3 font-bold hover:bg-gray-500"
       >
         Log out
